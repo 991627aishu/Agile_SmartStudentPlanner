@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Notifications - Smart Student Planner{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-bell"></i> All Notifications</h3>
+        </div>
+        <div class="card-body">
+            {% if notifications %}
+                <div class="notifications-list">
+                    {% for notif in notifications %}
+                    <div class="notification-item {% if not notif.is_read %}unread{% endif %}">
+                        <div class="notification-header">
+                            <strong>{{ notif.title }}</strong>
+                            <small>{{ notif.created_at }}</small>
+                        </div>
+                        <p class="notification-message">{{ notif.message }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>No notifications yet. Keep studying!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

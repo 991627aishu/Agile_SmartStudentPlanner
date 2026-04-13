@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Tasks — SSP{% endblock %}
+{% block page_title %}Task Manager{% endblock %}
+
+{% block content %}
+<div class="tasks-container">
+    <!-- Add Task Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Create New Task</h3>
+            <i class="fas fa-plus-circle"></i>
+        </div>
+        <div class="card-body">
+            <form method="POST" class="task-form">
+                <div class="form-group">
+                    <label>Task Title</label>
+                    <input type="text" name="title" placeholder="e.g., Complete Chapter 3 exercises" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Subject (optional)</label>
+                        <select name="subject_id">
+                            <option value="">— None —</option>
+                            {% for s in subjects %}
+                            <option value="{{ s.subject_id }}">{{ s.subject_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" name="due_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select name="priority_score">
+                            <option value="1">1 - Low</option>
+                            <option value="2">2 - Medium-Low</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4 - High</option>
+                            <option value="5">5 - Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description (optional)</label>
+                    <textarea name="description" rows="2" placeholder="Add any notes..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task List -->
+    <div class="card">
+        <div class="card-header">
+            <h3>All Tasks ({{ tasks|length }})</h3>
+            <div class="task-filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="PENDING">Pending</button>
+                <button class="filter-btn" data-filter="IN_PROGRESS">In Progress</button>
+                <button class="filter-btn" data-filter="COMPLETED">Done</button>
+                <button class="filter-btn" data-filter="OVERDUE">Overdue</button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if tasks %}
+                <div class="tasks-list" id="taskList">
+                    {% for task in tasks %}
+                    <div class="task-card" data-status="{{ task.status }}">
+                        <div class="task-main">
+                            <div class="task-title-section">
+                                <span class="task-status-badge status-{{ task.status.lower() }}">{{ task.status }}</span>
+                                <span class="task-title-text">{{ task.title }}</span>
+                            </div>
+                            <div class="task-meta">
+                                {% if task.subject_name %}
+                                    <span class="task-subject"><i class="fas fa-book"></i> {{ task.subject_name }}</span>
+                                {% endif %}
+                                <span class="task-due"><i class="fas fa-calendar"></i> {{ task.due_date }}</span>
+                                <span class="task-priority priority-{{ task.priority_score }}">Priority: {{ task.priority_score }}</span>
+                            </div>
+                            {% if task.description %}
+                                <div class="task-description">{{ task.description }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="task-actions">
+                            <form method="POST" action="{{ url_for('update_task_status', tid=task.task_id) }}" class="status-form">
+                                <select name="status" onchange="this.form.submit()" class="status-select">
+                                    <option value="PENDING" {% if task.status=='PENDING' %}selected{% endif %}>Pending</option>
+                                    <option value="IN_PROGRESS" {% if task.status=='IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                                    <option value="COMPLETED" {% if task.status=='COMPLETED' %}selected{% endif %}>Completed</option>
+                                    <option value="SKIPPED" {% if task.status=='SKIPPED' %}selected{% endif %}>Skipped</option>
+                                    <option value="OVERDUE" {% if task.status=='OVERDUE' %}selected{% endif %}>Overdue</option>
+                                </select>
+                            </form>
+                            <a href="{{ url_for('delete_task', tid=task.task_id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>No tasks yet. Create your first task above!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const filter = this.dataset.filter;
+        document.querySelectorAll('.task-card').forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

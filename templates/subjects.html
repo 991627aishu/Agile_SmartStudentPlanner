@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Subjects - Smart Student Planner{% endblock %}
+{% block page_title %}Manage Subjects{% endblock %}
+
+{% block content %}
+<div class="subjects-container">
+    <!-- Two Column Layout - Side by Side -->
+    <div class="two-columns">
+        
+        <!-- LEFT COLUMN: Add Subject Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-plus-circle"></i> Add New Subject</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="subject-form">
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" name="subject_name" placeholder="e.g., Mathematics" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Exam Date</label>
+                        <input type="date" name="exam_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Syllabus Size (chapters/topics)</label>
+                        <input type="number" name="syllabus_size" min="1" placeholder="e.g., 4" autocomplete="off" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Difficulty Level</label>
+                        <select name="difficulty_level">
+                            <option value="1">1 - Very Easy</option>
+                            <option value="2">2 - Easy</option>
+                            <option value="3" selected>3 - Medium</option>
+                            <option value="4">4 - Hard</option>
+                            <option value="5">5 - Very Hard</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Add Subject
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Your Subjects List -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-book"></i> Your Subjects ({{ subjects|length }})</h3>
+            </div>
+            <div class="card-body">
+                {% if subjects %}
+                    <div class="subjects-list">
+                        {% for subject in subjects %}
+                        <div class="subject-item">
+                            <div class="subject-info">
+                                <h4>{{ subject.subject_name }}</h4>
+                                <div class="subject-details">
+                                    <span><i class="fas fa-calendar"></i> {{ subject.exam_date }}</span>
+                                    <span><i class="fas fa-hourglass-half"></i> {{ subject.exam_date|days_until }} days left</span>
+                                    <span><i class="fas fa-layer-group"></i> {{ subject.syllabus_size }} chapters</span>
+                                    <span><i class="fas fa-chart-line"></i> Difficulty: 
+                                        {% for i in range(subject.difficulty_level) %}⭐{% endfor %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="subject-actions">
+                                <a href="{{ url_for('delete_subject', sid=subject.subject_id) }}" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Delete this subject? All related tasks will be affected.')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-book-open"></i>
+                        <p>No subjects added yet. Add your first subject!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM: Generate Timetable (Full Width) -->
+    <div class="card full-width-card">
+        <div class="card-header">
+            <h3><i class="fas fa-calendar-alt"></i> Generate Smart Timetable</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('gen_timetable') }}" class="generate-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Daily Study Hours Goal</label>
+                        <input type="number" name="daily_hours" value="{{ daily_hours }}" step="0.5" min="1" max="16" required>
+                        <small>How many hours can you study per day?</small>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-magic"></i> Generate Timetable
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .two-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .full-width-card {
+        grid-column: span 2;
+    }
+    
+    /* Subjects List Styles */
+    .subjects-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .subject-item {
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius-sm);
+        padding: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: var(--transition);
+    }
+    
+    .subject-item:hover {
+        border-color: var(--accent-primary);
+        transform: translateX(4px);
+    }
+    
+    .subject-info {
+        flex: 1;
+    }
+    
+    .subject-info h4 {
+        margin-bottom: 6px;
+        color: var(--text-primary);
+        font-size: 15px;
+    }
+    
+    .subject-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+    
+    .subject-details i {
+        margin-right: 3px;
+        color: var(--text-muted);
+    }
+    
+    .subject-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    /* Generate form styles */
+    .generate-form .form-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 20px;
+        align-items: end;
+    }
+    
+    .generate-form .form-group {
+        margin-bottom: 0;
+    }
+    
+    .generate-form small {
+        display: block;
+        margin-top: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .two-columns {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .full-width-card {
+            grid-column: span 1;
+        }
+        
+        .generate-form .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .subject-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .subject-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+{% endblock %}

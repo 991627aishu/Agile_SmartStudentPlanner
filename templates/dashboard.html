@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — SSP{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-tasks"></i></div>
+        <div class="stat-value">{{ total_tasks }}</div>
+        <div class="stat-label">Total Tasks</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-value">{{ completed }}</div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-spinner"></i></div>
+        <div class="stat-value">{{ in_progress }}</div>
+        <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
+        <div class="stat-value">{{ streak }}</div>
+        <div class="stat-label">Day Streak 🔥</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Today's Plan -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Today's Study Plan</h3>
+            <i class="fas fa-calendar-day"></i>
+        </div>
+        <div class="card-body">
+            {% if todays_plan %}
+                {% for plan in todays_plan %}
+                <div class="task-item">
+                    <div class="task-info">
+                        <span class="task-title">{{ plan.subject_name }}</span>
+                        <span class="task-date">{{ plan.allocated_hours }} hours allocated</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (plan.allocated_hours / 8 * 100)|round }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-plus"></i>
+                    <p>No timetable yet. <a href="{{ url_for('subjects') }}">Add subjects</a> and generate one!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Exams -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Upcoming Exams</h3>
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div class="card-body">
+            {% if upcoming_exams %}
+                {% for exam in upcoming_exams %}
+                <div class="exam-item">
+                    <div>
+                        <div class="exam-name">{{ exam.subject_name }}</div>
+                        <div class="exam-date">{{ exam.exam_date }}</div>
+                    </div>
+                    <div class="days-badge {% if exam.days_left <= 7 %}urgent{% elif exam.days_left <= 21 %}soon{% else %}ok{% endif %}">
+                        {{ exam.days_left }} days
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>No upcoming exams. Add subjects to track them!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Study Progress -->
+    <div class="card full-width">
+        <div class="card-header">
+            <h3>Study Progress</h3>
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="card-body">
+            <div class="progress-stats">
+                <div class="stat-circle">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a3e" stroke-width="8"/>
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#6c63ff" stroke-width="8" 
+                                stroke-dasharray="283" stroke-dashoffset="{{ 283 - (283 * completion_rate / 100) }}" 
+                                transform="rotate(-90 50 50)"/>
+                    </svg>
+                    <div class="circle-value">{{ completion_rate }}%</div>
+                </div>
+                <div class="stats-details">
+                    <div class="detail-item">
+                        <span>Tasks Completed</span>
+                        <strong>{{ completed }}/{{ total_tasks }}</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Subjects</span>
+                        <strong>{{ total_subjects }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Study Chart -->
+    <div class="card full-width">
+        <div class="card-header">
+            <h3>Study Hours - Last 7 Days</h3>
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="card-body">
+            <canvas id="studyChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Recommendations -->
+    {% if recent_recs %}
+    <div class="card full-width">
+        <div class="card-header">
+            <h3>Smart Insights</h3>
+            <i class="fas fa-lightbulb"></i>
+        </div>
+        <div class="card-body">
+            {% for rec in recent_recs %}
+            <div class="insight-item">
+                <i class="fas fa-robot"></i>
+                <div>
+                    <p>{{ rec.message }}</p>
+                    <small>{{ rec.created_date }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/progress_chart')
+    .then(r => r.json())
+    .then(data => {
+        const ctx = document.getElementById('studyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels.length ? data.labels : ['No data'],
+                datasets: [{
+                    label: 'Hours Studied',
+                    data: data.data.length ? data.data : [0],
+                    backgroundColor: 'rgba(108, 99, 255, 0.7)',
+                    borderRadius: 8,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8b92b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#8b92b8' }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

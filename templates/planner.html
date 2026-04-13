@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}Study Planner{% endblock %}
+{% block page_title %}Study Planner{% endblock %}
+
+{% block content %}
+<div class="planner-container">
+    <!-- Date Navigation -->
+    <div class="date-nav">
+        <a href="{{ url_for('planner', date_str=prev_day) }}" class="nav-btn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        <div class="current-date">
+            <h2>{{ view_date.strftime('%A, %B %d, %Y') }}</h2>
+            {% if view_date == today %}
+                <span class="today-badge"> Today </span>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('planner', date_str=next_day) }}" class="nav-btn">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- Study Plan - Table Format -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📖 Study Plan for {{ view_date.strftime('%B %d, %Y') }}</h3>
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="card-body">
+            {% if todays_plan %}
+                <div class="table-responsive">
+                    <table class="study-plan-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Difficulty</th>
+                                <th>Hours</th>
+                                <th>Exam Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in todays_plan %}
+                            <tr>
+                                <td class="subject-name" data-label="Subject">{{ plan.subject_name }}</td>
+                                <td class="difficulty" data-label="Difficulty">
+                                    {% for i in range(plan.difficulty_level) %}⭐{% endfor %}
+                                    {% for i in range(5 - plan.difficulty_level) %}☆{% endfor %}
+                                </td>
+                                <td class="hours" data-label="Hours">
+                                    <span class="hours-badge">{{ plan.allocated_hours|format_hours }}</span>
+                                </td>
+                                <td class="exam-date" data-label="Exam Date">
+                                    {{ plan.exam_date }}
+                                    <small>({{ plan.exam_date|days_until }} days left)</small>
+                                </td>
+                                <td class="action" data-label="Action">
+                                    <a href="{{ url_for('progress') }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-chart-line"></i> Log Progress
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No study plan for this date.</p>
+                    {% if view_date < today %}
+                        <small>This date is in the past.</small>
+                    {% else %}
+                        <small>Go to <a href="{{ url_for('subjects') }}">Subjects</a> and generate a timetable!</small>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Tasks -->
+    <div class="card">
+        <div class="card-header">
+            <h3>✅ Upcoming Tasks</h3>
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="card-body">
+            {% if upcoming_tasks %}
+                <div class="tasks-list">
+                    {% for task in upcoming_tasks %}
+                    <div class="task-item">
+                        <div class="task-info">
+                            <span class="task-title">{{ task.title }}</span>
+                            {% if task.subject_name %}
+                                <span class="task-subject">{{ task.subject_name }}</span>
+                            {% endif %}
+                            <span class="task-date">Due: {{ task.due_date }}</span>
+                        </div>
+                        <span class="priority-badge priority-{{ task.priority_score }}">P{{ task.priority_score }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p>No upcoming tasks! <a href="{{ url_for('tasks') }}">Create one</a></p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Your Exams -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📅 Your Exams</h3>
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div class="card-body">
+            {% if subjects %}
+                <div class="exams-list">
+                    {% for subject in subjects %}
+                    <div class="exam-item">
+                        <span class="exam-name">{{ subject.subject_name }}</span>
+                        <span class="exam-date">{{ subject.exam_date }} ({{ subject.exam_date|days_until }} days left)</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-book"></i>
+                    <p>No subjects added. <a href="{{ url_for('subjects') }}">Add subjects first</a></p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .date-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        background: var(--bg-card);
+        padding: 16px 24px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border);
+    }
+    
+    .nav-btn {
+        background: var(--bg-primary);
+        padding: 8px 16px;
+        border-radius: var(--border-radius-sm);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .nav-btn:hover {
+        background: var(--accent-primary);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .current-date {
+        text-align: center;
+    }
+    
+    .current-date h2 {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+    
+    /* Fixed Today Badge */
+    .today-badge {
+        background: var(--accent-primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block;
+        color: white;
+        box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3);
+    }
+    
+    /* Study Plan Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .study-plan-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .study-plan-table thead th {
+        text-align: left;
+        padding: 14px 12px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--accent-primary);
+    }
+    
+    .study-plan-table tbody td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-secondary);
+    }
+    
+    .study-plan-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+    
+    .study-plan-table tbody tr:hover td {
+        color: var(--text-primary);
+    }
+    
+    .subject-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .difficulty {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    
+    .hours-badge {
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-block;
+        color: white;
+    }
+    
+    .exam-date {
+        font-size: 13px;
+    }
+    
+    .exam-date small {
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-left: 5px;
+    }
+    
+    .action .btn-sm {
+        padding: 5px 12px;
+        font-size: 11px;
+    }
+    
+    /* Tasks List Styles */
+    .tasks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: var(--bg-primary);
+        border-radius: var(--border-radius-sm);
+        border: 1px solid var(--border);
+        transition: var(--transition);
+    }
+    
+    .task-item:hover {
+        border-color: var(--accent-primary);
+    }
+    
+    .task-info {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .task-title {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .task-subject {
+        font-size: 12px;
+        color: var(--accent-primary);
+        background: rgba(108, 99, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    
+    .task-date {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    
+    /* Exams List Styles */
+    .exams-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .exam-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: var(--bg-primary);
+        border-radius: var(--border-radius-sm);
+        border: 1px solid var(--border);
+    }
+    
+    .exam-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .exam-date {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    @media (max-width: 768px) {
+        .date-nav {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .task-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        
+        .exam-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+        }
+        
+        .study-plan-table thead {
+            display: none;
+        }
+        
+        .study-plan-table tbody tr {
+            display: block;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius-sm);
+            padding: 12px;
+        }
+        
+        .study-plan-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .study-plan-table tbody td:last-child {
+            border-bottom: none;
+        }
+        
+        .study-plan-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-right: 12px;
+        }
+    }
+</style>
+{% endblock %}

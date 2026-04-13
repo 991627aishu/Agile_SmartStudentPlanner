@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Student Planner{% endblock %}</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.user_id %}
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon"><i class="fas fa-brain"></i></div>
+                <div class="logo-text">SSP</div>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('subjects') }}" class="nav-item {% if request.endpoint == 'subjects' %}active{% endif %}">
+                <i class="fas fa-book-open"></i> <span>Subjects</span>
+            </a>
+            <a href="{{ url_for('planner') }}" class="nav-item {% if request.endpoint == 'planner' %}active{% endif %}">
+                <i class="fas fa-calendar-week"></i> <span>Planner</span>
+            </a>
+            <a href="{{ url_for('tasks') }}" class="nav-item {% if request.endpoint == 'tasks' %}active{% endif %}">
+                <i class="fas fa-tasks"></i> <span>Tasks</span>
+            </a>
+            <a href="{{ url_for('progress') }}" class="nav-item {% if request.endpoint == 'progress' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> <span>Progress</span>
+            </a>
+            <a href="{{ url_for('recommendations') }}" class="nav-item {% if request.endpoint == 'recommendations' %}active{% endif %}">
+                <i class="fas fa-lightbulb"></i> <span>Tips</span>
+            </a>
+            <a href="{{ url_for('notifications') }}" class="nav-item {% if request.endpoint == 'notifications' %}active{% endif %}">
+                <i class="fas fa-bell"></i> <span>Notifications
+                    {% if unread_notifications > 0 %}
+                    <span class="notification-badge">{{ unread_notifications }}</span>
+                    {% endif %}
+                </span>
+            </a>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-chip">
+                <div class="avatar">{{ session.user_name[0]|upper }}</div>
+                <div class="user-name">{{ session.user_name }}</div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main content -->
+    <div class="main-wrap">
+        <div class="topbar">
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+            <div class="topbar-right">
+                <div class="date-badge">
+                    <i class="fas fa-calendar"></i> 
+                    <span id="currentDate"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash-container">
+                    <div class="flash flash-{{ category }}">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+                        {{ message }}
+                        <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endwith %}
+        
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    {% else %}
+        <!-- Auth pages (login/register/index) -->
+        {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+    
+    <script>
+        // Set current date
+        const options = { day: '2-digit', month: 'short', year: 'numeric' };
+        const dateElem = document.getElementById('currentDate');
+        if (dateElem) {
+            dateElem.innerText = new Date().toLocaleDateString('en-US', options);
+        }
+        
+        // Mobile sidebar functionality
+        const sidebar = document.getElementById('sidebar');
+        const mobileToggle = document.getElementById('mobileToggle');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+        
+        function closeSidebar() {
+            if (sidebar) {
+                sidebar.classList.remove('open');
+            }
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        }
+        
+        function openSidebar() {
+            if (sidebar) {
+                sidebar.classList.add('open');
+            }
+            if (overlay) {
+                overlay.classList.add('active');
+            }
+        }
+        
+        // Mobile toggle - opens sidebar
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openSidebar();
+            });
+        }
+        
+        // Close button inside sidebar
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeSidebar();
+            });
+        }
+        
+        // Click overlay to close
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                closeSidebar();
+            });
+        }
+        
+        // Close sidebar when pressing Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+        
+        // Auto-dismiss flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.flash').forEach(el => {
+                el.style.transition = 'opacity .4s';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 400);
+            });
+        }, 4000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

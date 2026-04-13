@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Recommendations — SSP{% endblock %}
+{% block page_title %}Study Tips & Insights{% endblock %}
+
+{% block content %}
+<div class="recommendations-container">
+    {% if perf %}
+    <div class="performance-summary">
+        <div class="summary-content">
+            <div class="summary-stats">
+                <div>
+                    <span class="stat-label">Completion</span>
+                    <span class="stat-value-sm">{{ perf.completion_percentage|round(1) }}%</span>
+                </div>
+                <div>
+                    <span class="stat-label">Consistency</span>
+                    <span class="stat-value-sm">{{ perf.consistency_score|round(1) }}</span>
+                </div>
+                <div>
+                    <span class="stat-label">Stress Level</span>
+                    <span class="stat-value-sm {% if perf.stress_score >= 4 %}stress-high{% elif perf.stress_score >= 3 %}stress-medium{% else %}stress-low{% endif %}">
+                        {{ perf.stress_score|round(1) }}/5
+                    </span>
+                </div>
+            </div>
+            {% if perf.stress_score >= 4 %}
+                <div class="alert alert-warning">⚠️ High Stress Detected - Take a break and breathe!</div>
+            {% elif perf.completion_percentage >= 75 %}
+                <div class="alert alert-success">🏆 Great Performance! Keep up the momentum!</div>
+            {% else %}
+                <div class="alert alert-info">📈 Keep going! Every small step counts.</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- General Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h3>General Study Tips</h3>
+            <i class="fas fa-lightbulb"></i>
+        </div>
+        <div class="card-body">
+            <div class="tips-grid">
+                <div class="tip-card">
+                    <i class="fas fa-clock"></i>
+                    <h4>Pomodoro Technique</h4>
+                    <p>Study for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-30 min break.</p>
+                </div>
+                <div class="tip-card">
+                    <i class="fas fa-moon"></i>
+                    <h4>Sleep & Memory</h4>
+                    <p>Sleep 7-8 hours. Your brain consolidates memory during deep sleep — don't skip it before exams!</p>
+                </div>
+                <div class="tip-card">
+                    <i class="fas fa-layer-group"></i>
+                    <h4>Spaced Repetition</h4>
+                    <p>Review material at increasing intervals: day 1, day 3, day 7, day 14. It dramatically improves retention.</p>
+                </div>
+                <div class="tip-card">
+                    <i class="fas fa-pen-alt"></i>
+                    <h4>Active Recall</h4>
+                    <p>Don't just re-read notes. Close the book and try to recall key points. Testing yourself beats passive reading.</p>
+                </div>
+                <div class="tip-card">
+                    <i class="fas fa-running"></i>
+                    <h4>Move Your Body</h4>
+                    <p>Short 10-min walks between sessions improve focus and reduce cortisol (stress hormone).</p>
+                </div>
+                <div class="tip-card">
+                    <i class="fas fa-bullseye"></i>
+                    <h4>Prioritize Ruthlessly</h4>
+                    <p>Always start with the highest-priority subject when your energy is fresh.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personalized Alerts -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Your Personalized Alerts ({{ recommendations|length }})</h3>
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="card-body">
+            {% if recommendations %}
+                <div class="alerts-list">
+                    {% for rec in recommendations %}
+                    <div class="alert-item">
+                        <i class="fas fa-robot"></i>
+                        <div>
+                            <p>{{ rec.message }}</p>
+                            <small>{{ rec.created_date }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-robot"></i>
+                    <p>No personalized alerts yet.<br>Log your study sessions and the system will generate recommendations!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

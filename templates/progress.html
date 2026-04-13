@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Progress — SSP{% endblock %}
+{% block page_title %}Progress Tracker{% endblock %}
+
+{% block content %}
+<div class="progress-container">
+    <!-- Stats Summary -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-value">{{ completed }}</div>
+            <div class="stat-label">Tasks Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fas fa-percentage"></i></div>
+            <div class="stat-value">{% if total_tasks %}{{ (completed/total_tasks*100)|round(1) }}%{% else %}0%{% endif %}</div>
+            <div class="stat-label">Completion Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fas fa-brain"></i></div>
+            <div class="stat-value">{{ perf.consistency_score|round(1) if perf else 0 }}</div>
+            <div class="stat-label">Consistency Score</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fas fa-heartbeat"></i></div>
+            <div class="stat-value">{{ perf.stress_score|round(1) if perf else 0 }}/5</div>
+            <div class="stat-label">Stress Level</div>
+        </div>
+    </div>
+
+    <div class="two-columns">
+        <!-- Log Study Session -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Log Today's Study Session</h3>
+                <i class="fas fa-pen"></i>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select name="subject_id" required>
+                            <option value="">— Select Subject —</option>
+                            {% for s in subjects %}
+                            <option value="{{ s.subject_id }}">{{ s.subject_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Hours Studied</label>
+                            <input type="number" name="actual_hours" min="0" max="16" step="0.5" placeholder="e.g., 2.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Session Status</label>
+                            <select name="completion_status">
+                                <option value="COMPLETED">✅ Completed</option>
+                                <option value="PARTIAL">⚠️ Partial</option>
+                                <option value="SKIPPED">❌ Skipped</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sleep Last Night (hours)</label>
+                            <input type="number" name="sleep_hours" min="1" max="12" step="0.5" value="7">
+                        </div>
+                        <div class="form-group">
+                            <label>Stress Level (1–5)</label>
+                            <select name="stress_level">
+                                <option value="1">1 — Calm</option>
+                                <option value="2">2 — Mild</option>
+                                <option value="3">3 — Moderate</option>
+                                <option value="4">4 — High</option>
+                                <option value="5">5 — Very High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Log Progress</button>
+                </form>
+
+                {% if subject_stats %}
+                <div class="subject-hours">
+                    <h4>Subject-wise Study Hours</h4>
+                    {% for s in subject_stats %}
+                    <div class="subject-progress">
+                        <div class="subject-label">
+                            <span>{{ s.subject_name }}</span>
+                            <span>{{ s.total_hours|round(1) }}h ({{ s.sessions }} sessions)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ [s.total_hours / 20 * 100, 100]|min|round }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Recent Study Logs</h3>
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="card-body">
+                {% if logs %}
+                    <div class="logs-table">
+                        <table>
+                            <thead>
+                                <tr><th>Date</th><th>Subject</th><th>Hours</th><th>Status</th><th>Stress</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.study_date }}</td>
+                                    <td>{{ log.subject_name }}</td>
+                                    <td>{{ log.actual_study_time }}h</td>
+                                    <td>
+                                        <span class="badge status-{{ log.completion_status.lower() }}">{{ log.completion_status }}</span>
+                                    </td>
+                                    <td>
+                                        {% for i in range(log.stress_level) %}🔴{% endfor %}
+                                        {% for i in range(5-log.stress_level) %}⚪{% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>No study logs yet. Log your first session on the left!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
